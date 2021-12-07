@@ -11,6 +11,7 @@ LOCAL_CFLAGS += -fno-rtti -fno-exceptions
 
 LOCAL_SRC_FILES := 	ReclassServer.cpp \
 					network/PassiveSocket.cpp \
+					network/PacketHandler.cpp \
 
 
 LOCAL_CPP_INCLUDES += $(LOCAL_PATH)

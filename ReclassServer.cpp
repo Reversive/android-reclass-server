@@ -3,20 +3,21 @@
 PassiveSocket *server;
 
 
-void sigHandler(int signo) {
-    if (signo == SIGINT) {
-        log(INFO, "%s", "Received stop signal, stopping server....");
-        server->close();
-        exit(0);
+void sigIntHandler(int signo) {
+    log(INFO, "%s", "Received stop signal, stopping server....");
+    if(server != NULL) {
+        delete server;
     }
+    exit(0);
 }
+
 
 int main(int argc, char *argv[]) {
     int status = 0;
     long port = strtol(argv[1], NULL, 10);
     log(INFO, "%s", "Remember to 'adb forward tcp:<port> tcp:<port>' before running this program.");
     log(INFO, "Starting server on port %ld...", port);
-    signal(SIGINT, sigHandler);
+    signal(SIGINT, sigIntHandler);
     server = new PassiveSocket(port);
     if(server == NULL) {
         log(ERROR, "%s", "Could not create server socket.");
@@ -38,6 +39,7 @@ int main(int argc, char *argv[]) {
 
     log(INFO, "TCP server started on port %ld", port);
 
+    // Just accepting 1 connection, the plugin one.
     if(server->accept() == false) {
         log(ERROR, "%s", "Accept failed");
         status = -4;
@@ -46,8 +48,9 @@ int main(int argc, char *argv[]) {
 
     log(INFO, "%s", "Client connected");
 
-cleanup:
 
+
+cleanup:
     if(server != NULL) {
         delete server;
     }
