@@ -1,8 +1,12 @@
 #ifndef PACKET_HANDLER_HPP
 #define PACKET_HANDLER_HPP
+#include "Socket.hpp"
+#include <dirent.h>
+#include <ctype.h>
 #define MAX_PROCESS_COUNT 100
 #define MAX_NAME_SIZE 128
 #define MAX_DATA_SIZE 1024
+
 
 typedef enum { PACKET_GET_PROCESS_LIST, PACKET_READ_MEMORY, PACKET_WRITE_MEMORY } PacketType;
 typedef enum { READ, WRITE } AccessType;
@@ -30,20 +34,21 @@ typedef struct MemoryDataResponse {
 
 typedef struct PacketRequest {
     PacketType type;
-    typedef union {
+    union {
         MemoryDataRequest memoryDataRequest;
-    } Data;
+    } data;
 } PacketRequest;
 
-typedef bool (*PacketHandler)(PacketRequest *req);
+typedef bool (*PacketHandler)(Socket *sock, PacketRequest *req);
 
 typedef struct PacketResponse {
     PacketType type;
     Status status;
-    typedef union {
+    union {
         ProcessListDataResponse processListData;
         MemoryDataResponse memoryData;
-    } Data;
+    } data;
 } PacketResponse;
 
+bool handleIncomingPacket(Socket *sock, PacketRequest *req);
 #endif

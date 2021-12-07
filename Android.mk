@@ -10,7 +10,7 @@ LOCAL_CFLAGS += -ffunction-sections -fdata-sections -fvisibility=hidden
 LOCAL_CFLAGS += -fno-rtti -fno-exceptions
 
 LOCAL_SRC_FILES := 	ReclassServer.cpp \
-					network/PassiveSocket.cpp \
+					network/Socket.cpp \
 					network/PacketHandler.cpp \
 
 

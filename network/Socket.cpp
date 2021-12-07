@@ -1,13 +1,13 @@
-#include "include/PassiveSocket.hpp"
+#include "include/Socket.hpp"
 
 LOG_LEVEL current_level = DEBUG;
 
-PassiveSocket::PassiveSocket(long port) {
+Socket::Socket(long port) {
     this->mPort = port;
     this->mClientFd = this->mSockFd = -1;
 }
 
-bool PassiveSocket::bind() {
+bool Socket::bind() {
     this->mSockFd = socket(AF_INET, SOCK_STREAM, 0);
     if (this->mSockFd < 0) {
         log(ERROR, "%s", "Error opening socket");
@@ -24,7 +24,7 @@ bool PassiveSocket::bind() {
     return true;
 }
 
-bool PassiveSocket::listen() {
+bool Socket::listen() {
     if (::listen(this->mSockFd, 5) < 0) {
         log(ERROR, "%s", "Error on listening");
         return false;
@@ -32,7 +32,7 @@ bool PassiveSocket::listen() {
     return true;
 }
 
-bool PassiveSocket::accept() {
+bool Socket::accept() {
     this->mClientFd = ::accept(this->mSockFd, (struct sockaddr *) &this->mClientAddr, &this->mClientLen);
     if (this->mClientFd < 0) {
         log(ERROR, "%s", "Error on accept");
@@ -42,7 +42,7 @@ bool PassiveSocket::accept() {
 }
 
 
-void PassiveSocket::close() {
+void Socket::close() {
     log(INFO, "%s", "Closing the connection...");
     if (this->mClientFd != -1) {
         ::close(this->mClientFd);
@@ -52,6 +52,26 @@ void PassiveSocket::close() {
     }
 }
 
-PassiveSocket::~PassiveSocket() {
+char *Socket::recv(size_t size, size_t *bytes_read) {
+    char *buffer = new char[size];
+    int n = ::recv(this->mClientFd, buffer, size, 0);
+    if (n < 0) {
+        log(ERROR, "%s", "Error reading from socket");
+        return nullptr;
+    }
+    *bytes_read = n;
+    return buffer;
+}
+
+bool Socket::send(const char *buffer, size_t size) {
+    int n = ::send(this->mClientFd, buffer, size, 0);
+    if (n < 0) {
+        log(ERROR, "%s", "Error writing to socket");
+        return false;
+    }
+    return true;
+}
+
+Socket::~Socket() {
     close();
 }

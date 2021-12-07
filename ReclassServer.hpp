@@ -1,6 +1,4 @@
 #ifndef RECLASS_SERVER_HPP
 #define RECLASS_SERVER_HPP
-
-#include "network/include/PassiveSocket.hpp"
-
+#include "network/include/PacketHandler.hpp"
 #endif

@@ -1,5 +1,5 @@
-#ifndef PASSIVE_SOCKET_HPP
-#define PASSIVE_SOCKET_HPP
+#ifndef SOCKET_HPP
+#define SOCKET_HPP
 
 #include "Logger.hpp"
 #include <unistd.h>
@@ -10,7 +10,7 @@
 #include <arpa/inet.h>
 #include <string.h>
 
-class PassiveSocket {
+class Socket {
 private:
     int mSockFd;
     int mPort;
@@ -18,12 +18,15 @@ private:
     struct sockaddr_in mServerAddr;
     struct sockaddr_in mClientAddr;
     socklen_t mClientLen;
+    
 public:
-    PassiveSocket(long port);
-    ~PassiveSocket();
+    Socket(long port);
+    ~Socket();
     bool bind();
     bool listen();
     bool accept();
+    char *recv(size_t size, size_t *readBytes);
+    bool send(const char *data, size_t size);
     void close();
 };
 
