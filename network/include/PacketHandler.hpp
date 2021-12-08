@@ -3,13 +3,13 @@
 #include "Socket.hpp"
 #include <dirent.h>
 #include <ctype.h>
+#include "Process.hpp"
 #define MAX_PROCESS_COUNT 100
 #define MAX_NAME_SIZE 128
 #define MAX_DATA_SIZE 1024
 
 
 typedef enum { PACKET_GET_PROCESS_LIST, PACKET_READ_MEMORY, PACKET_WRITE_MEMORY } PacketType;
-typedef enum { READ, WRITE } AccessType;
 typedef enum { ERR = -1, OK = 0 } Status;
 typedef struct ProcessInfo {
     int pid;
@@ -22,9 +22,8 @@ typedef struct ProcessListDataResponse {
 } ProcessListDataResponse;
 
 typedef struct MemoryDataRequest {
-    AccessType accessType;
     int processId;
-    int address;
+    uint64_t address;
     int size;
 } MemoryDataRequest;
 

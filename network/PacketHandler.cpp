@@ -1,13 +1,13 @@
 #include "include/PacketHandler.hpp"
 
 const char *getProcessNameByPid(const int pid) {
-	char *name = (char *)calloc(1024, sizeof(char));
+	char *name = (char *)calloc(MAX_DATA_SIZE, sizeof(char));
 	if (name) {
 		sprintf(name, "/proc/%d/cmdline", pid);
 		FILE *f = fopen(name, "r");
 		if (f) {
 			size_t size;
-			size = fread(name, sizeof(char), 1024, f);
+			size = fread(name, sizeof(char), MAX_DATA_SIZE, f);
 			if (size > 0) {
 				if ('\n' == name[size - 1])
 					name[size - 1] = '\0';
@@ -32,10 +32,10 @@ int getProcesses(ProcessInfo *processes) {
 
         if(count == MAX_PROCESS_COUNT) break;
 
-		if (!isdigit(*ent->d_name))
-			continue;
+        if (!isdigit(*ent->d_name))
+            continue;
 
-		tgid = strtol(ent->d_name, NULL, 10);
+        tgid = strtol(ent->d_name, NULL, 10);
         const char *processName = getProcessNameByPid(tgid);
         if (strstr(processName, "cmdline") != NULL || strstr(processName, "/") != NULL) {
             continue;
@@ -72,8 +72,12 @@ bool handleGetProcessListPacket(Socket *sock, PacketRequest *req) {
 }
 
 bool handleReadMemoryPacket(Socket *sock, PacketRequest *req) {
-    log(INFO, "%s", "Received ReadMemory packet");
-    return true;
+    target_pid = req->data.memoryDataRequest.processId;
+    PacketResponse response;
+    vm_readv(reinterpret_cast<void *>(req->data.memoryDataRequest.address), &response.data.memoryData.data, req->data.memoryDataRequest.size);
+    response.type = PACKET_READ_MEMORY;
+    response.status = OK;
+    return sock->send((char*)&response, sizeof(response));
 }
 
 bool handleWriteMemoryPacket(Socket *sock, PacketRequest *req) {

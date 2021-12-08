@@ -3,6 +3,7 @@
 
 #include "Logger.hpp"
 #include <unistd.h>
+#include <stdint.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -18,7 +19,7 @@ private:
     struct sockaddr_in mServerAddr;
     struct sockaddr_in mClientAddr;
     socklen_t mClientLen;
-    
+
 public:
     Socket(long port);
     ~Socket();

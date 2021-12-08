@@ -12,6 +12,10 @@ void sigIntHandler(int signo) {
 
 int main(int argc, char *argv[]) {
     int status = 0;
+    if(argc != 2) {
+        log(ERROR, "Usage: %s <port>", argv[0]);
+        return 1;
+    }
     long port = strtol(argv[1], NULL, 10);
     log(INFO, "%s", "Remember to 'adb forward tcp:<port> tcp:<port>' before running this program.");
     log(INFO, "Starting server on port %ld...", port);
