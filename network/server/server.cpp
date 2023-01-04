@@ -54,8 +54,6 @@ bool network::server::run()
             error_ocurred = true;
             break;
         }
-        logger::info("Received packet size: %d", incoming_packet->get_packet_size());
-        logger::info("Received packet id: %d", incoming_packet->get_packet_id());
 
         network::packet_data response_payload = network::packet_handlers[static_cast<int>(incoming_packet->get_packet_id())](incoming_packet->get_data());
 
@@ -63,6 +61,8 @@ bool network::server::run()
         if (!this->send_packet(response_packet))
         {
             error_ocurred = true;
+            delete incoming_packet;
+            delete response_packet;
             break;
         }
 
@@ -74,8 +74,6 @@ bool network::server::run()
 
 bool network::server::send_packet(network::packet *packet)
 {
-    logger::info("Sending packet size: %d", packet->get_packet_size());
-    logger::info("Sending packet id: %d", packet->get_packet_id());
     std::vector<char> packet_data = packet->serialize();
     if (!this->_socket->send_byte_array(packet_data))
     {
