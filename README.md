@@ -1,5 +1,5 @@
 # android-reclass-server
-Android TCP server for android-reclass-plugin (WIP)
+Android TCP server for android-reclass-plugin (https://github.com/Reversive/android-reclass-plugin)
 ## Compile
 ```
 ndk-build
