@@ -5,9 +5,9 @@ LOCAL_MODULE := reclass-server
 
 LOCAL_CPPFLAGS += -pie -fPIE -ffunction-sections -fdata-sections -fvisibility=hidden
 LOCAL_LDFLAGS += -pie -fPIE -Wl,--gc-sections
-LOCAL_CFLAGS := -Wno-error=format-security -fpermissive
+LOCAL_CFLAGS := -Wall -Wextra
 LOCAL_CFLAGS += -ffunction-sections -fdata-sections -fvisibility=hidden
-LOCAL_CFLAGS += -fno-rtti -fno-exceptions
+LOCAL_CFLAGS += -fno-rtti 
 
 LOCAL_SRC_FILES :=	entry_point.cpp \
 					app.cpp \
