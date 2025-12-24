@@ -1,4 +1,5 @@
 #include "logger.hpp"
+#include <cstdio>
 
 void log(std::ostream &out, const char *color, const char *level, const char *fmt, va_list args)
 {

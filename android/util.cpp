@@ -1,4 +1,6 @@
 #include <util.hpp>
+#include <cstdio>
+#include <cstring>
 
 std::vector<process_info> android::util::get_processes()
 {
