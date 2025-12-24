@@ -4,9 +4,10 @@
 void log(std::ostream &out, const char *color, const char *level, const char *fmt, va_list args)
 {
     std::time_t now = std::time(nullptr);
-    std::tm *tm_now = std::localtime(&now);
+    std::tm tm_now;
+    localtime_r(&now, &tm_now);
 
-    out << "\033[" << color << "m[" << tm_now->tm_hour << ":" << tm_now->tm_min << ":" << tm_now->tm_sec << "] [" << level << "]\033[0m ";
+    out << "\033[" << color << "m[" << tm_now.tm_hour << ":" << tm_now.tm_min << ":" << tm_now.tm_sec << "] [" << level << "]\033[0m ";
 
     char buffer[1024];
     vsnprintf(buffer, sizeof(buffer), fmt, args);
