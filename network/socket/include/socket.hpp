@@ -33,6 +33,8 @@ namespace network
 
             socket(const socket&) = delete;
             socket& operator=(const socket&) = delete;
+            socket(socket&& other) noexcept;
+            socket& operator=(socket&& other) noexcept;
 
             bool bind();
             bool listen();

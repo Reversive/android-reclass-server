@@ -10,6 +10,35 @@ network::tcp::socket::~socket()
     close();
 }
 
+network::tcp::socket::socket(socket&& other) noexcept
+    : _socket(other._socket)
+    , _port(other._port)
+    , _client_descriptor(other._client_descriptor)
+    , _server_address(other._server_address)
+    , _client_address(other._client_address)
+    , _client_address_length(other._client_address_length)
+{
+    other._socket = -1;
+    other._client_descriptor = -1;
+}
+
+network::tcp::socket& network::tcp::socket::operator=(socket&& other) noexcept
+{
+    if (this != &other)
+    {
+        close();
+        _socket = other._socket;
+        _port = other._port;
+        _client_descriptor = other._client_descriptor;
+        _server_address = other._server_address;
+        _client_address = other._client_address;
+        _client_address_length = other._client_address_length;
+        other._socket = -1;
+        other._client_descriptor = -1;
+    }
+    return *this;
+}
+
 bool network::tcp::socket::bind()
 {
     _socket = ::socket(AF_INET, SOCK_STREAM, 0);
