@@ -36,7 +36,7 @@ bool android::syscall::pvm(pid_t __pid, void *address, void *buffer, size_t size
     }
 
     ssize_t bytes = process_v(__pid, local, 1, remote, 1, 0, iswrite);
-    return bytes == size;
+    return bytes >= 0 && static_cast<size_t>(bytes) == size;
 }
 
 bool android::syscall::vm_readv(pid_t __pid, void *address, void *buffer, size_t size)

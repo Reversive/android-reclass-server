@@ -1,7 +1,7 @@
 #include <handler.hpp>
 #include <stdexcept>
 
-network::packet_data network::handler::get_process_list(const packet_data &data)
+network::packet_data network::handler::get_process_list([[maybe_unused]] const packet_data &data)
 {
     std::vector<process_info> processes = android::util::get_processes();
     return response::process_list_data(processes.size(), processes);
