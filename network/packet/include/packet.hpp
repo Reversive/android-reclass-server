@@ -5,6 +5,7 @@
 #include <process_list_data.hpp>
 #include <memory_data.hpp>
 #include <read_memory_data.hpp>
+#include <write_memory_data.hpp>
 #include <no_data.hpp>
 
 namespace network
@@ -21,7 +22,7 @@ namespace network
         packet_write_memory_res
     };
 
-    using packet_data = std::variant<response::process_list_data, response::memory_data, request::read_memory_data, request::no_data>;
+    using packet_data = std::variant<response::process_list_data, response::memory_data, request::read_memory_data, request::write_memory_data, request::no_data>;
     typedef packet_data (*packet_handler_fn)(const packet_data &);
 
     class packet

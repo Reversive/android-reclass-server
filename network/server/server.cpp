@@ -108,7 +108,13 @@ network::packet *network::server::receive_packet()
         logger::error("Failed to receive the packet data");
         return nullptr;
     }
-    // At this point it's a read/write request
-    // TODO: if it's a write request, implement request::write_memory_data
-    return new network::packet(packet_size, packet_id, request::read_memory_data::deserialize(packet_data));
+    if (packet_id == network::packet_type::packet_read_memory_req)
+    {
+        return new network::packet(packet_size, packet_id, request::read_memory_data::deserialize(packet_data));
+    }
+    else if (packet_id == network::packet_type::packet_write_memory_req)
+    {
+        return new network::packet(packet_size, packet_id, request::write_memory_data::deserialize(packet_data));
+    }
+    return nullptr;
 }

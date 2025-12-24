@@ -4,6 +4,7 @@
 #include <util.hpp>
 #include <syscall.hpp>
 #include <memory_data.hpp>
+#include <write_memory_data.hpp>
 
 namespace network
 {

@@ -15,6 +15,7 @@ LOCAL_SRC_FILES :=	entry_point.cpp \
 					network/packet/packet.cpp \
 					network/packet/handler/handler.cpp \
 					network/packet/request/read_memory_data.cpp \
+					network/packet/request/write_memory_data.cpp \
 					network/packet/response/process_list_data.cpp \
 					network/packet/response/memory_data.cpp \
 					network/socket/socket.cpp \
