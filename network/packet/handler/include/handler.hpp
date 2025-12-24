@@ -15,7 +15,7 @@ namespace network
         network::packet_data write_memory(const packet_data &);
     }
 
-    static network::packet_handler_fn packet_handlers[3] = {
+    inline network::packet_handler_fn packet_handlers[] = {
         network::handler::get_process_list,
         network::handler::read_memory,
         network::handler::write_memory};
