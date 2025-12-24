@@ -1,4 +1,5 @@
 #include <read_memory_data.hpp>
+#include <stdexcept>
 
 std::vector<char> request::read_memory_data::serialize() const
 {
@@ -18,7 +19,7 @@ request::read_memory_data request::read_memory_data::deserialize(const std::vect
 {
     int process_id;
     uint64_t address;
-    int size;
+    uint32_t size;
 
     const char* ptr = data.data();
     std::memcpy(&process_id, ptr, sizeof(process_id));
@@ -26,6 +27,11 @@ request::read_memory_data request::read_memory_data::deserialize(const std::vect
     std::memcpy(&address, ptr, sizeof(address));
     ptr += sizeof(address);
     std::memcpy(&size, ptr, sizeof(size));
+
+    if (size > MAX_READ_SIZE)
+    {
+        throw std::runtime_error("Read size exceeds maximum allowed");
+    }
 
     return read_memory_data(process_id, address, size);
 }
