@@ -1,24 +1,35 @@
 #include "include/socket.hpp"
 
+network::tcp::socket::socket(int port)
+    : _port(port)
+{
+}
+
+network::tcp::socket::~socket()
+{
+    close();
+}
+
 bool network::tcp::socket::bind()
 {
-    this->_socket = ::socket(AF_INET, SOCK_STREAM, 0);
-    if (this->_socket < 0)
+    _socket = ::socket(AF_INET, SOCK_STREAM, 0);
+    if (_socket < 0)
     {
-        logger::error("Failed to create the socket");
+        logger::error("Failed to create socket: %s", strerror(errno));
         return false;
     }
 
     int opt = 1;
-    setsockopt(this->_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+    setsockopt(_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
-    std::memset(&this->_server_address, 0, sizeof(this->_server_address));
-    this->_server_address.sin_family = AF_INET;
-    this->_server_address.sin_addr.s_addr = INADDR_ANY;
-    this->_server_address.sin_port = htons(this->_port);
-    if (::bind(this->_socket, (struct sockaddr *)&this->_server_address, sizeof(this->_server_address)) < 0)
+    std::memset(&_server_address, 0, sizeof(_server_address));
+    _server_address.sin_family = AF_INET;
+    _server_address.sin_addr.s_addr = INADDR_ANY;
+    _server_address.sin_port = htons(_port);
+
+    if (::bind(_socket, reinterpret_cast<struct sockaddr*>(&_server_address), sizeof(_server_address)) < 0)
     {
-        logger::error("Failed to bind the socket");
+        logger::error("Failed to bind socket: %s", strerror(errno));
         return false;
     }
 
@@ -27,9 +38,9 @@ bool network::tcp::socket::bind()
 
 bool network::tcp::socket::listen()
 {
-    if (::listen(this->_socket, BACKLOG) < 0)
+    if (::listen(_socket, BACKLOG) < 0)
     {
-        logger::error("Failed to listen the socket");
+        logger::error("Failed to listen: %s", strerror(errno));
         return false;
     }
     return true;
@@ -37,10 +48,11 @@ bool network::tcp::socket::listen()
 
 bool network::tcp::socket::accept()
 {
-    this->_client_descriptor = ::accept(this->_socket, (struct sockaddr *)&this->_client_address, &this->_client_address_length);
-    if (this->_client_descriptor < 0)
+    _client_address_length = sizeof(_client_address);
+    _client_descriptor = ::accept(_socket, reinterpret_cast<struct sockaddr*>(&_client_address), &_client_address_length);
+    if (_client_descriptor < 0)
     {
-        logger::error("Failed to accept the client");
+        logger::error("Failed to accept: %s", strerror(errno));
         return false;
     }
     return true;
@@ -48,116 +60,83 @@ bool network::tcp::socket::accept()
 
 bool network::tcp::socket::close()
 {
-    logger::info("Closing the connection...");
     close_client();
-    if (this->_socket != -1)
+    if (_socket != -1)
     {
-        if (::close(this->_socket) < 0)
+        if (::close(_socket) < 0)
         {
-            logger::error("Failed to close the socket");
+            logger::error("Failed to close socket: %s", strerror(errno));
             return false;
         }
-        this->_socket = -1;
+        _socket = -1;
     }
-    logger::info("Connection closed successfully");
     return true;
 }
 
 void network::tcp::socket::close_client()
 {
-    if (this->_client_descriptor != -1)
+    if (_client_descriptor != -1)
     {
-        ::close(this->_client_descriptor);
-        this->_client_descriptor = -1;
+        ::close(_client_descriptor);
+        _client_descriptor = -1;
     }
 }
 
-network::tcp::socket::socket(long port)
+network::tcp::recv_result network::tcp::socket::receive_bytes(void* buffer, size_t size)
 {
-    this->_port = port;
-    this->_socket = this->_client_descriptor = -1;
-}
+    size_t bytes_received = 0;
+    char* buf = static_cast<char*>(buffer);
 
-network::tcp::socket::~socket()
-{
-    this->close();
-}
-
-void *network::tcp::socket::receive(size_t size)
-{
-    int bytes_received = 0;
-    void *buffer = malloc(size);
-    if (buffer == nullptr)
-    {
-        logger::error("Failed to allocate memory for the buffer");
-        return nullptr;
-    }
     while (bytes_received < size)
     {
-        int read_bytes = ::recv(this->_client_descriptor, static_cast<char *>(buffer) + bytes_received, size - bytes_received, 0);
-        if (read_bytes < 0)
+        ssize_t n = ::recv(_client_descriptor, buf + bytes_received, size - bytes_received, 0);
+        if (n < 0)
         {
-            logger::error("Failed to receive data from the client");
-            return nullptr;
+            if (errno == EINTR)
+                continue;
+            logger::error("recv failed: %s", strerror(errno));
+            return recv_result::error;
         }
-        else if (read_bytes == 0)
+        if (n == 0)
         {
-            logger::info("Client disconnected");
-            return nullptr;
+            return recv_result::disconnected;
         }
-        bytes_received += read_bytes;
+        bytes_received += static_cast<size_t>(n);
     }
-
-    return buffer;
+    return recv_result::success;
 }
 
-int network::tcp::socket::receive_int()
+network::tcp::recv_result network::tcp::socket::receive_int(int& out_value)
 {
-    int *buffer = static_cast<int *>(this->receive(sizeof(int)));
-    if (buffer == nullptr)
+    return receive_bytes(&out_value, sizeof(out_value));
+}
+
+network::tcp::recv_result network::tcp::socket::receive_byte_array(std::vector<char>& out_buffer, size_t size)
+{
+    out_buffer.resize(size);
+    recv_result result = receive_bytes(out_buffer.data(), size);
+    if (result != recv_result::success)
     {
-        return -1;
+        out_buffer.clear();
     }
-    int value = *buffer;
-    free(buffer);
-    return value;
+    return result;
 }
 
-std::vector<char> network::tcp::socket::receive_byte_array(size_t size)
+bool network::tcp::socket::send_byte_array(const std::vector<char>& buffer)
 {
-    std::vector<char> buffer(size);
-    int bytes_received = 0;
-    while (bytes_received < size)
-    {
-        int read_bytes = ::recv(this->_client_descriptor, &buffer[bytes_received], size - bytes_received, 0);
-        if (read_bytes < 0)
-        {
-            logger::error("Failed to receive data from the client");
-            return std::vector<char>();
-        }
-        else if (read_bytes == 0)
-        {
-            logger::info("Client disconnected");
-            return std::vector<char>();
-        }
-        bytes_received += read_bytes;
-    }
+    size_t bytes_sent = 0;
 
-    return buffer;
-}
-
-bool network::tcp::socket::send_byte_array(const std::vector<char> &buffer)
-{
-    int bytes_sent = 0;
     while (bytes_sent < buffer.size())
     {
-        int sent_bytes = ::send(this->_client_descriptor, &buffer[bytes_sent], buffer.size() - bytes_sent, 0);
-        if (sent_bytes < 0)
+        ssize_t n = ::send(_client_descriptor, buffer.data() + bytes_sent, buffer.size() - bytes_sent, 0);
+        if (n < 0)
         {
-            logger::error("Failed to send data to the client");
+            if (errno == EINTR)
+                continue;
+            logger::error("send failed: %s", strerror(errno));
             return false;
         }
-        bytes_sent += sent_bytes;
+        bytes_sent += static_cast<size_t>(n);
     }
     return true;
 }

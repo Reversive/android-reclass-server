@@ -1,48 +1,59 @@
 #include <server.hpp>
 
-network::server::server(long port)
+namespace
 {
-    this->_socket = new tcp::socket(port);
-}
+    constexpr int PACKET_HEADER_SIZE = sizeof(int) * 2;
 
-network::server::~server()
-{
-    if (this->_socket != nullptr)
+    network::packet_type get_response_type(network::packet_type request_type)
     {
-        delete this->_socket;
+        switch (request_type)
+        {
+            case network::packet_type::packet_get_process_list_req:
+                return network::packet_type::packet_get_process_list_res;
+            case network::packet_type::packet_read_memory_req:
+                return network::packet_type::packet_read_memory_res;
+            case network::packet_type::packet_write_memory_req:
+                return network::packet_type::packet_write_memory_res;
+            default:
+                return network::packet_type::packet_error;
+        }
+    }
+
+    bool is_valid_request_type(network::packet_type type)
+    {
+        return type == network::packet_type::packet_get_process_list_req ||
+               type == network::packet_type::packet_read_memory_req ||
+               type == network::packet_type::packet_write_memory_req;
     }
 }
 
-network::packet_type get_response_type(network::packet_type request_type)
+network::server::server(int port)
+    : _socket(std::make_unique<tcp::socket>(port))
 {
-    int response_type = static_cast<int>(request_type) + 3;
-    return static_cast<network::packet_type>(response_type);
 }
 
 bool network::server::run()
 {
-    logger::info("Starting TCP server on port %ld...", this->_socket->get_port());
-    if (!this->_socket->bind())
+    logger::info("Starting TCP server on port %d...", _socket->get_port());
+
+    if (!_socket->bind())
     {
-        logger::error("Failed to bind the socket");
         return false;
     }
 
-    if (!this->_socket->listen())
+    if (!_socket->listen())
     {
-        logger::error("Failed to listen to the socket");
         return false;
     }
 
-    logger::info("TCP server started on port %ld", this->_socket->get_port());
+    logger::info("TCP server started on port %d", _socket->get_port());
 
     while (true)
     {
         logger::info("Waiting for a client...");
 
-        if (!this->_socket->accept())
+        if (!_socket->accept())
         {
-            logger::error("Failed to accept the client");
             continue;
         }
 
@@ -50,76 +61,110 @@ bool network::server::run()
 
         while (true)
         {
-            network::packet *incoming_packet = this->receive_packet();
-            if (incoming_packet == nullptr)
+            auto incoming_packet = receive_packet();
+            if (!incoming_packet)
             {
                 break;
             }
 
-            network::packet_data response_payload = network::packet_handlers[static_cast<int>(incoming_packet->get_packet_id())](incoming_packet->get_data());
+            auto packet_id = incoming_packet->get_packet_id();
+            if (!is_valid_request_type(packet_id))
+            {
+                logger::error("Invalid packet type: %d", static_cast<int>(packet_id));
+                break;
+            }
 
-            network::packet *response_packet = new network::packet(get_response_type(incoming_packet->get_packet_id()), response_payload);
-            bool send_ok = this->send_packet(response_packet);
+            int handler_index = static_cast<int>(packet_id);
+            network::packet_data response_payload = network::packet_handlers[handler_index](incoming_packet->get_data());
 
-            delete incoming_packet;
-            delete response_packet;
+            network::packet response_packet(get_response_type(packet_id), response_payload);
 
-            if (!send_ok)
+            if (!send_packet(response_packet))
             {
                 break;
             }
         }
 
         logger::info("Client disconnected");
-        this->_socket->close_client();
+        _socket->close_client();
     }
 
     return true;
 }
 
-bool network::server::send_packet(network::packet *packet)
+bool network::server::send_packet(const network::packet& packet)
 {
-    std::vector<char> packet_data = packet->serialize();
-    if (!this->_socket->send_byte_array(packet_data))
-    {
-        logger::error("Failed to send the response packet");
-        return false;
-    }
-    return true;
+    std::vector<char> data = const_cast<network::packet&>(packet).serialize();
+    return _socket->send_byte_array(data);
 }
 
-network::packet *network::server::receive_packet()
+std::unique_ptr<network::packet> network::server::receive_packet()
 {
-    int packet_size = this->_socket->receive_int();
-    if (packet_size == -1)
+    int packet_size;
+    auto result = _socket->receive_int(packet_size);
+    if (result != tcp::recv_result::success)
     {
-        logger::error("Failed to receive the packet size");
+        if (result == tcp::recv_result::error)
+            logger::error("Failed to receive packet size");
         return nullptr;
     }
-    network::packet_type packet_id = static_cast<network::packet_type>(this->_socket->receive_int());
-    if (packet_id == network::packet_type::packet_error)
+
+    if (packet_size < PACKET_HEADER_SIZE)
     {
-        logger::error("Failed to receive the packet id");
+        logger::error("Invalid packet size: %d (too small)", packet_size);
         return nullptr;
     }
-    size_t packet_data_size = packet_size - sizeof(int) * 2;
-    if (packet_data_size == 0)
+
+    if (static_cast<size_t>(packet_size) > tcp::MAX_PACKET_SIZE)
     {
-        return new network::packet(packet_size, packet_id);
-    }
-    std::vector<char> packet_data = this->_socket->receive_byte_array(packet_data_size);
-    if (packet_data.size() == 0)
-    {
-        logger::error("Failed to receive the packet data");
+        logger::error("Packet size exceeds maximum: %d", packet_size);
         return nullptr;
     }
+
+    int packet_id_raw;
+    result = _socket->receive_int(packet_id_raw);
+    if (result != tcp::recv_result::success)
+    {
+        if (result == tcp::recv_result::error)
+            logger::error("Failed to receive packet id");
+        return nullptr;
+    }
+
+    auto packet_id = static_cast<network::packet_type>(packet_id_raw);
+
+    size_t data_size = static_cast<size_t>(packet_size) - PACKET_HEADER_SIZE;
+    if (data_size == 0)
+    {
+        return std::make_unique<network::packet>(packet_size, packet_id);
+    }
+
+    std::vector<char> packet_data;
+    result = _socket->receive_byte_array(packet_data, data_size);
+    if (result != tcp::recv_result::success)
+    {
+        if (result == tcp::recv_result::error)
+            logger::error("Failed to receive packet data");
+        return nullptr;
+    }
+
     if (packet_id == network::packet_type::packet_read_memory_req)
     {
-        return new network::packet(packet_size, packet_id, request::read_memory_data::deserialize(packet_data));
+        if (packet_data.size() < request::read_memory_data::min_size())
+        {
+            logger::error("Truncated read_memory packet");
+            return nullptr;
+        }
+        return std::make_unique<network::packet>(packet_size, packet_id, request::read_memory_data::deserialize(packet_data));
     }
     else if (packet_id == network::packet_type::packet_write_memory_req)
     {
-        return new network::packet(packet_size, packet_id, request::write_memory_data::deserialize(packet_data));
+        if (packet_data.size() < request::write_memory_data::min_size())
+        {
+            logger::error("Truncated write_memory packet");
+            return nullptr;
+        }
+        return std::make_unique<network::packet>(packet_size, packet_id, request::write_memory_data::deserialize(packet_data));
     }
+
     return nullptr;
 }

@@ -1,32 +1,38 @@
 #include <app.hpp>
+#include <cstdlib>
+#include <climits>
 
-network::server *server = nullptr;
-
-void signal_handler(int signal)
+namespace
 {
-    if (server != nullptr)
+    volatile sig_atomic_t g_shutdown_requested = 0;
+
+    void signal_handler(int)
     {
-        delete server;
+        g_shutdown_requested = 1;
     }
-    exit(0);
 }
 
-bool app::run(int argc, char *argv[])
+bool app::run(int argc, char* argv[])
 {
     logger::info("Remember to 'adb forward tcp:<port> tcp:<port>' before running this program.");
-    signal(SIGINT, signal_handler);
+
     if (argc != 2)
     {
         logger::error("Usage: %s <port>", argv[0]);
         return false;
     }
 
-    long port = strtol(argv[1], NULL, 10);
-    if (port < 0l)
+    char* endptr = nullptr;
+    long port = std::strtol(argv[1], &endptr, 10);
+
+    if (endptr == argv[1] || *endptr != '\0' || port <= 0 || port > 65535)
     {
-        logger::error("Invalid port: %d", port);
+        logger::error("Invalid port: %s (must be 1-65535)", argv[1]);
         return false;
     }
-    server = new network::server(port);
-    return server->run();
+
+    signal(SIGINT, signal_handler);
+
+    network::server srv(static_cast<int>(port));
+    return srv.run();
 }

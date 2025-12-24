@@ -1,32 +1,31 @@
 #include <read_memory_data.hpp>
 
-std::vector<char> request::read_memory_data::serialize()
+std::vector<char> request::read_memory_data::serialize() const
 {
-    std::vector<char> data_bytes;
-    data_bytes.reserve(sizeof(_process_id) + sizeof(_address) + sizeof(_size));
-    data_bytes.insert(data_bytes.end(), reinterpret_cast<const char*>(&_process_id), reinterpret_cast<const char*>(&_process_id) + sizeof(_process_id));
-    data_bytes.insert(data_bytes.end(), reinterpret_cast<const char*>(&_address), reinterpret_cast<const char*>(&_address) + sizeof(_address));
-    data_bytes.insert(data_bytes.end(), reinterpret_cast<const char*>(&_size), reinterpret_cast<const char*>(&_size) + sizeof(_size));
+    std::vector<char> data_bytes(min_size());
+    char* ptr = data_bytes.data();
+
+    std::memcpy(ptr, &_process_id, sizeof(_process_id));
+    ptr += sizeof(_process_id);
+    std::memcpy(ptr, &_address, sizeof(_address));
+    ptr += sizeof(_address);
+    std::memcpy(ptr, &_size, sizeof(_size));
+
     return data_bytes;
 }
 
-request::read_memory_data request::read_memory_data::deserialize(const std::vector<char> &data)
+request::read_memory_data request::read_memory_data::deserialize(const std::vector<char>& data)
 {
     int process_id;
-    uintptr_t address;
+    uint64_t address;
     int size;
 
-    size_t offset = 0;
-    std::memcpy(&process_id, data.data() + offset, sizeof(process_id));
-    offset += sizeof(process_id);
-    std::memcpy(&address, data.data() + offset, sizeof(address));
-    offset += sizeof(address);
-    std::memcpy(&size, data.data() + offset, sizeof(size));
+    const char* ptr = data.data();
+    std::memcpy(&process_id, ptr, sizeof(process_id));
+    ptr += sizeof(process_id);
+    std::memcpy(&address, ptr, sizeof(address));
+    ptr += sizeof(address);
+    std::memcpy(&size, ptr, sizeof(size));
 
-    return request::read_memory_data(process_id, address, size);
-}
-
-int request::read_memory_data::get_size() const
-{
-    return sizeof(_process_id) + sizeof(_address) + sizeof(_size);
+    return read_memory_data(process_id, address, size);
 }
