@@ -115,7 +115,7 @@ std::unique_ptr<network::packet> network::server::receive_packet()
         return nullptr;
     }
 
-    if (static_cast<size_t>(packet_size) > tcp::MAX_PACKET_SIZE)
+    if (static_cast<size_t>(packet_size) > MAX_PACKET_SIZE)
     {
         logger::error("Packet size exceeds maximum: %d", packet_size);
         return nullptr;
