@@ -26,6 +26,7 @@ namespace network
             bool listen();
             bool accept();
             bool close();
+            void close_client();
             void *receive(size_t size);
             int receive_int();
             std::vector<char> receive_byte_array(size_t size);

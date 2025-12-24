@@ -21,7 +21,6 @@ network::packet_type get_response_type(network::packet_type request_type)
 
 bool network::server::run()
 {
-
     logger::info("Starting TCP server on port %ld...", this->_socket->get_port());
     if (!this->_socket->bind())
     {
@@ -35,41 +34,47 @@ bool network::server::run()
         return false;
     }
 
-    logger::info("TCP server started on port %ld, waiting for a client...", this->_socket->get_port());
+    logger::info("TCP server started on port %ld", this->_socket->get_port());
 
-    if (!this->_socket->accept())
+    while (true)
     {
-        logger::error("Failed to accept the client");
-        return false;
-    }
+        logger::info("Waiting for a client...");
 
-    logger::info("Client connected");
-    bool error_ocurred = false;
-    while (!error_ocurred)
-    {
-        network::packet *incoming_packet = this->receive_packet();
-        if (incoming_packet == nullptr)
+        if (!this->_socket->accept())
         {
-            logger::error("Failed to receive the packet");
-            error_ocurred = true;
-            break;
+            logger::error("Failed to accept the client");
+            continue;
         }
 
-        network::packet_data response_payload = network::packet_handlers[static_cast<int>(incoming_packet->get_packet_id())](incoming_packet->get_data());
+        logger::info("Client connected");
 
-        network::packet *response_packet = new network::packet(get_response_type(incoming_packet->get_packet_id()), response_payload);
-        if (!this->send_packet(response_packet))
+        while (true)
         {
-            error_ocurred = true;
+            network::packet *incoming_packet = this->receive_packet();
+            if (incoming_packet == nullptr)
+            {
+                break;
+            }
+
+            network::packet_data response_payload = network::packet_handlers[static_cast<int>(incoming_packet->get_packet_id())](incoming_packet->get_data());
+
+            network::packet *response_packet = new network::packet(get_response_type(incoming_packet->get_packet_id()), response_payload);
+            bool send_ok = this->send_packet(response_packet);
+
             delete incoming_packet;
             delete response_packet;
-            break;
+
+            if (!send_ok)
+            {
+                break;
+            }
         }
 
-        delete incoming_packet;
-        delete response_packet;
+        logger::info("Client disconnected");
+        this->_socket->close_client();
     }
-    return error_ocurred;
+
+    return true;
 }
 
 bool network::server::send_packet(network::packet *packet)

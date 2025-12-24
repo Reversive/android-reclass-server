@@ -9,6 +9,9 @@ bool network::tcp::socket::bind()
         return false;
     }
 
+    int opt = 1;
+    setsockopt(this->_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+
     std::memset(&this->_server_address, 0, sizeof(this->_server_address));
     this->_server_address.sin_family = AF_INET;
     this->_server_address.sin_addr.s_addr = INADDR_ANY;
@@ -46,14 +49,7 @@ bool network::tcp::socket::accept()
 bool network::tcp::socket::close()
 {
     logger::info("Closing the connection...");
-    if (this->_client_descriptor != -1)
-    {
-        if (::close(this->_client_descriptor) < 0)
-        {
-            logger::error("Failed to close the client descriptor");
-            return false;
-        }
-    }
+    close_client();
     if (this->_socket != -1)
     {
         if (::close(this->_socket) < 0)
@@ -61,9 +57,19 @@ bool network::tcp::socket::close()
             logger::error("Failed to close the socket");
             return false;
         }
+        this->_socket = -1;
     }
     logger::info("Connection closed successfully");
     return true;
+}
+
+void network::tcp::socket::close_client()
+{
+    if (this->_client_descriptor != -1)
+    {
+        ::close(this->_client_descriptor);
+        this->_client_descriptor = -1;
+    }
 }
 
 network::tcp::socket::socket(long port)
