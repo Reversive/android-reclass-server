@@ -74,7 +74,12 @@ bool network::server::run()
                 break;
             }
 
-            int handler_index = static_cast<int>(packet_id);
+            size_t handler_index = static_cast<size_t>(packet_id);
+            if (handler_index >= std::size(network::packet_handlers))
+            {
+                logger::error("Handler index out of bounds: %zu", handler_index);
+                break;
+            }
             network::packet_data response_payload = network::packet_handlers[handler_index](incoming_packet->get_data());
 
             network::packet response_packet(get_response_type(packet_id), response_payload);
