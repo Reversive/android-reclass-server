@@ -10,7 +10,7 @@ namespace request
         {
             return std::vector<char>();
         }
-        int get_size() const
+        size_t get_size() const
         {
             return 0;
         }

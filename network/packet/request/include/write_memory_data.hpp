@@ -24,9 +24,9 @@ namespace request
             return sizeof(int) + sizeof(uint64_t) + sizeof(int);
         }
 
-        int get_size() const
+        size_t get_size() const
         {
-            return static_cast<int>(min_size() + _data.size());
+            return min_size() + _data.size();
         }
 
     private:
