@@ -1,14 +1,16 @@
 #include <app.hpp>
 #include <cstdlib>
 #include <climits>
+#include <cstring>
+#include <atomic>
 
 namespace
 {
-    volatile sig_atomic_t g_shutdown_requested = 0;
+    std::atomic<bool> g_shutdown_requested{false};
 
     void signal_handler(int)
     {
-        g_shutdown_requested = 1;
+        g_shutdown_requested.store(true, std::memory_order_relaxed);
     }
 }
 
@@ -31,7 +33,12 @@ bool app::run(int argc, char* argv[])
         return false;
     }
 
-    signal(SIGINT, signal_handler);
+    struct sigaction sa;
+    std::memset(&sa, 0, sizeof(sa));
+    sa.sa_handler = signal_handler;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+    sigaction(SIGINT, &sa, nullptr);
 
     network::server srv(static_cast<int>(port));
     return srv.run();
