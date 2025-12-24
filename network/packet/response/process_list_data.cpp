@@ -13,12 +13,12 @@ std::vector<char> response::process_list_data::serialize() const
     return data_bytes;
 }
 
-int response::process_list_data::get_size() const
+size_t response::process_list_data::get_size() const
 {
-    int size = sizeof(_process_count);
+    size_t size = sizeof(_process_count);
     for (const auto &process : _process_list)
     {
-        size += process.get_serialized_size();
+        size += static_cast<size_t>(process.get_serialized_size());
     }
     return size;
 }
