@@ -94,7 +94,7 @@ bool network::server::run()
 
 bool network::server::send_packet(const network::packet& packet)
 {
-    std::vector<char> data = const_cast<network::packet&>(packet).serialize();
+    std::vector<char> data = packet.serialize();
     return _socket->send_byte_array(data);
 }
 

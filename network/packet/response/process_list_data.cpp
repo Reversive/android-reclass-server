@@ -1,6 +1,6 @@
 #include <process_list_data.hpp>
 
-std::vector<char> response::process_list_data::serialize()
+std::vector<char> response::process_list_data::serialize() const
 {
     std::vector<char> data_bytes;
     data_bytes.reserve(get_size());

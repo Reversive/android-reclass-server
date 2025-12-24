@@ -1,7 +1,7 @@
 #include <packet.hpp>
 #include <cstring>
 
-std::vector<char> network::packet::serialize()
+std::vector<char> network::packet::serialize() const
 {
     std::vector<char> packet_bytes;
     packet_bytes.reserve(_packet_size);

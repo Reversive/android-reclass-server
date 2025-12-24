@@ -36,7 +36,7 @@ namespace network
 
         packet(network::packet_type packet_id, const packet_data &data);
 
-        std::vector<char> serialize();
+        std::vector<char> serialize() const;
         int get_packet_size() const { return _packet_size; }
         network::packet_type get_packet_id() const { return _packet_id; }
         packet_data get_data() const { return _data; }

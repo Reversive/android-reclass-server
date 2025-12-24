@@ -1,6 +1,6 @@
 #include <memory_data.hpp>
 
-std::vector<char> response::memory_data::serialize()
+std::vector<char> response::memory_data::serialize() const
 {
     return _data;
 }

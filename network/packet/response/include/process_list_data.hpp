@@ -10,7 +10,7 @@ namespace response
             : _process_count(process_count), _process_list(_process_list) {}
         int get_process_count() const { return _process_count; }
         std::vector<process_info> get_processes() const { return _process_list; }
-        std::vector<char> serialize();
+        std::vector<char> serialize() const;
         int get_size() const;
 
     private:

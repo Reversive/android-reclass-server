@@ -6,7 +6,7 @@ namespace request
     {
     public:
         no_data() = default;
-        std::vector<char> serialize()
+        std::vector<char> serialize() const
         {
             return std::vector<char>();
         }
