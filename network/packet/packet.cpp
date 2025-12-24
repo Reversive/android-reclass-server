@@ -5,8 +5,8 @@ std::vector<char> network::packet::serialize() const
 {
     std::vector<char> packet_bytes;
     packet_bytes.reserve(_packet_size);
-    packet_bytes.insert(packet_bytes.end(), (char *)&_packet_size, (char *)&_packet_size + sizeof(_packet_size));
-    packet_bytes.insert(packet_bytes.end(), (char *)&_packet_id, (char *)&_packet_id + sizeof(_packet_id));
+    packet_bytes.insert(packet_bytes.end(), reinterpret_cast<const char*>(&_packet_size), reinterpret_cast<const char*>(&_packet_size) + sizeof(_packet_size));
+    packet_bytes.insert(packet_bytes.end(), reinterpret_cast<const char*>(&_packet_id), reinterpret_cast<const char*>(&_packet_id) + sizeof(_packet_id));
     std::visit([&](auto &&arg)
                {
         std::vector<char> data_bytes = arg.serialize();
